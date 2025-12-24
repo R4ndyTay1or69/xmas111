@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merry Christmas To Chemo0O</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000511; /* 深夜背景色 */
+            background-image: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            font-family: 'Arial', sans-serif;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .text-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            pointer-events: none; /* 让鼠标事件穿透文字层 */
+        }
+
+        .text-overlay h1 {
+            color: #ffffff;
+            font-size: 3rem;
+            margin: 0;
+            padding: 20px;
+            text-shadow: 
+                0 0 10px #ff0000,
+                0 0 20px #ff0000,
+                0 0 40px #00ff00,
+                0 0 80px #00ff00;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073, 0 0 50px #e60073, 0 0 60px #e60073, 0 0 70px #e60073;
+            }
+            to {
+                text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6, 0 0 50px #ff4da6, 0 0 60px #ff4da6, 0 0 70px #ff4da6, 0 0 80px #ff4da6;
+            }
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .text-overlay h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="treeCanvas"></canvas>
+    
+    <div class="text-overlay">
+        <h1>To Chemo0O</h1>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('treeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let w, h;
+        let particles = [];
+        const particleCount = 1200; // 粒子数量，可以根据性能调整
+        let rotSpeed = 0.003; // 旋转速度
+        let rotAngle = 0;
+
+        // 圣诞配色
+        const colors = [
+            '#FF0000', // 红
+            '#00FF00', // 绿
+            '#FFD700', // 金
+            '#FFFFFF', // 白
+            '#00FFFF'  // 青色点缀
+        ];
+
+        function resize() {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        // 粒子类
+        class Particle {
+            constructor(x, y, z, radius, color) {
+                this.x = x;
+                this.y = y;
+                this.z = z;
+                // 保存原始位置用于基于原始形态的运动
+                this.ox = x;
+                this.oy = y;
+                this.oz = z;
+                
+                this.radius = radius;
+                this.color = color;
+                this.alpha = Math.random() * 0.5 + 0.5;
+                // 每个粒子的闪烁速度
+                this.flashSpeed = Math.random() * 0.02 + 0.005;
+                this.flashDir = 1;
+            }
+
+            update() {
+                // 闪烁效果
+                this.alpha += this.flashSpeed * this.flashDir;
+                if (this.alpha > 1 || this.alpha < 0.3) {
+                    this.flashDir *= -1;
+                }
+            }
+
+            draw(rotAngle) {
+                // 简单的3D旋转矩阵 (绕Y轴)
+                let cos = Math.cos(rotAngle);
+                let sin = Math.sin(rotAngle);
+                let rotatedX = this.x * cos - this.z * sin;
+                let rotatedZ = this.z * cos + this.x * sin;
+
+                // 透视投影
+                // focalLength 决定了视角深度，数值越小，透视感越强
+                let focalLength = 400;
+                let scale = focalLength / (focalLength + rotatedZ + 300); // +300 是为了把树往后推一点
+
+                let x2d = w / 2 + rotatedX * scale;
+                let y2d = h / 2 + this.y * scale - h/10; // -h/10 为了把树向上提一点
+
+                // 绘制粒子
+                if (scale > 0) { // 只绘制在视野前方的
+                    ctx.globalAlpha = this.alpha;
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(x2d, y2d, this.radius * scale, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 添加一点发光效果
+                    ctx.shadowBlur = 10 * scale;
+                    ctx.shadowColor = this.color;
+                }
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const treeHeight = h * 0.7;
+            const maxRadius = w * 0.3;
+
+            for (let i = 0; i < particleCount; i++) {
+                // 生成螺旋锥体形状
+                // p 是从 0 (树顶) 到 1 (树底) 的进度
+                let p = i / particleCount;
+                
+                // 角度随高度变化，形成螺旋
+                let angle = p * Math.PI * 30; 
+                
+                // 半径随高度增加，形成锥形，加一点随机性使树看起来更自然
+                let radius = p * maxRadius + (Math.random() - 0.5) * 20;
+
+                let x = radius * Math.cos(angle);
+                let y = p * treeHeight - treeHeight / 2;
+                let z = radius * Math.sin(angle);
+
+                let size = Math.random() * 2.5 + 0.5;
+                let color = colors[Math.floor(Math.random() * colors.length)];
+
+                particles.push(new Particle(x, y, z, size, color));
+            }
+
+            // 添加树顶之星
+            particles.push(new Particle(0, -treeHeight/2 - 10, 0, 8, '#FFD700'));
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, w, h);
+            // 使用半透明背景清空，形成轻微的拖尾效果（可选，这里为了清晰度先注释掉）
+            // ctx.fillStyle = 'rgba(0, 5, 17, 0.2)';
+            // ctx.fillRect(0, 0, w, h);
+            
+            rotAngle += rotSpeed;
+
+            // 恢复阴影设置（因为clearRect可能会清除掉）
+            ctx.shadowBlur = 0;
+
+            // 将粒子按Z轴排序，确保后面的粒子先画，前面的后画（正确的深度遮挡）
+            particles.sort((a, b) => b.z - a.z);
+
+            for (let p of particles) {
+                p.update();
+                p.draw(rotAngle);
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // 初始化和事件监听
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+
+    </script>
+</body>
+</html>
